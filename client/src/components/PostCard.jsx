@@ -19,23 +19,35 @@ export default function PostCard({ post }) {
       onClick={() => navigate(`/r/${post.community?.slug}/comments/${post.id}`)}
     >
       {/* Vote column */}
-      <div className="bg-gray-50 w-10 flex flex-col items-center py-2 gap-1 rounded-l-sm shrink-0">
+      <div className="bg-gray-50 w-12 flex flex-col items-center py-3 gap-1 rounded-l-sm shrink-0 border-r border-gray-200">
         <button
           onClick={(e) => handleVote(e, 1)}
-          className={`p-0.5 rounded hover:bg-orange-100 transition-colors ${vote === 1 ? "text-[#FF4500]" : "text-gray-400"}`}
+          className={`flex flex-col items-center justify-center w-8 h-8 rounded hover:bg-orange-100 transition-colors ${
+            vote === 1 ? "text-[#FF4500]" : "text-gray-400"
+          }`}
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 4l8 8H4z" />
           </svg>
         </button>
+
         <span
-          className={`text-xs font-bold ${vote === 1 ? "text-[#FF4500]" : vote === -1 ? "text-[#7193FF]" : "text-gray-700"}`}
+          className={`text-xs font-bold ${
+            vote === 1
+              ? "text-[#FF4500]"
+              : vote === -1
+                ? "text-[#7193FF]"
+                : "text-gray-700"
+          }`}
         >
           {fmt(score)}
         </span>
+
         <button
           onClick={(e) => handleVote(e, -1)}
-          className={`p-0.5 rounded hover:bg-blue-100 transition-colors ${vote === -1 ? "text-[#7193FF]" : "text-gray-400"}`}
+          className={`flex flex-col items-center justify-center w-8 h-8 rounded hover:bg-blue-100 transition-colors ${
+            vote === -1 ? "text-[#7193FF]" : "text-gray-400"
+          }`}
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 20l-8-8h16z" />
