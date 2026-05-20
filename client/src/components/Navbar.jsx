@@ -1,11 +1,33 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import config from "../lib/config";
 
 export default function Navbar({ onCreatePost }) {
   const { user, logout, isLoggedIn } = useAuth();
   const navigate = useNavigate();
   const [showMenu, setShowMenu] = useState(false);
+  const [search, setSearch] = useState("");
+  const [results, setResults] = useState([]);
+  const [showResults, setShowResults] = useState(false);
+
+  const handleSearch = async (e) => {
+    const val = e.target.value;
+    setSearch(val);
+    if (val.trim().length < 2) {
+      setResults([]);
+      setShowResults(false);
+      return;
+    }
+    try {
+      const res = await fetch(`${config.BASE_URL}/communities?search=${val}`);
+      const data = await res.json();
+      setResults(data.communities ?? []);
+      setShowResults(true);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -14,6 +36,7 @@ export default function Navbar({ onCreatePost }) {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 h-12 flex items-center px-4 gap-2">
+      {/* Logo */}
       <Link to="/" className="flex items-center gap-1.5 shrink-0 mr-2">
         <div className="w-8 h-8 bg-[#FF4500] rounded-full flex items-center justify-center">
           <span className="text-white font-bold text-sm">R</span>
@@ -23,8 +46,9 @@ export default function Navbar({ onCreatePost }) {
         </span>
       </Link>
 
-      <div className="flex-1 max-w-xl">
-        <div className="flex items-center gap-2 bg-gray-100 hover:bg-white hover:border-[#FF4500] border border-transparent rounded-full px-4 py-1.5 transition-colors cursor-text">
+      {/* Search */}
+      <div className="flex-1 max-w-xl relative">
+        <div className="flex items-center gap-2 bg-gray-100 hover:bg-white hover:border-[#FF4500] border border-transparent rounded-full px-4 py-1.5 transition-colors focus-within:bg-white focus-within:border-[#FF4500]">
           <svg
             className="w-4 h-4 text-gray-400 shrink-0"
             fill="none"
@@ -40,11 +64,77 @@ export default function Navbar({ onCreatePost }) {
           </svg>
           <input
             className="bg-transparent outline-none text-sm text-gray-700 placeholder-gray-400 w-full"
-            placeholder="Search Reddit"
+            placeholder="Search communities..."
+            value={search}
+            onChange={handleSearch}
+            onFocus={() => results.length > 0 && setShowResults(true)}
+            onBlur={() => setTimeout(() => setShowResults(false), 200)}
           />
+          {search && (
+            <button
+              onClick={() => {
+                setSearch("");
+                setResults([]);
+                setShowResults(false);
+              }}
+              className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+            >
+              &times;
+            </button>
+          )}
         </div>
+
+        {/* Results dropdown */}
+        {showResults && results.length > 0 && (
+          <div className="absolute top-10 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden">
+            <div className="px-4 py-2 border-b border-gray-100">
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                Communities
+              </p>
+            </div>
+            {results.map((c) => (
+              <div
+                key={c.id}
+                className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 cursor-pointer transition-colors"
+                onClick={() => {
+                  navigate(`/r/${c.slug}`);
+                  setSearch("");
+                  setShowResults(false);
+                }}
+              >
+                <div className="w-8 h-8 rounded-full bg-[#FF4500] flex items-center justify-center text-white font-bold text-sm shrink-0">
+                  {c.name[0].toUpperCase()}
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-gray-900">
+                    r/{c.name}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {c._count?.members ?? 0} members
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* No results */}
+        {showResults && search.length >= 2 && results.length === 0 && (
+          <div className="absolute top-10 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-xl z-50 p-4 text-center">
+            <p className="text-sm text-gray-500">
+              No results for "<span className="font-semibold">{search}</span>"
+            </p>
+            <button
+              onClick={() => navigate("/create-community")}
+              className="mt-2 text-sm text-[#FF4500] font-semibold hover:underline"
+            >
+              Create r/{search}?
+            </button>
+          </div>
+        )}
       </div>
 
+      {/* Actions */}
       <div className="flex items-center gap-2 ml-auto shrink-0">
         {isLoggedIn ? (
           <>
@@ -106,7 +196,6 @@ export default function Navbar({ onCreatePost }) {
                     </p>
                     <p className="text-xs text-gray-500">{user?.email}</p>
                   </div>
-                  {/* ✅ Profile link added */}
                   <button
                     onClick={() => {
                       navigate("/profile");
