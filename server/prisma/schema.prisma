@@ -1,0 +1,95 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  posts                Post[]
+  comments             Comment[]
+  votes                Vote[]
+  createdCommunities   Community[]       @relation("CreatedCommunities")
+  communityMemberships CommunityMember[]
+}
+
+model Community {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+
+  creatorId Int
+  creator   User              @relation("CreatedCommunities", fields: [creatorId], references: [id])
+  posts     Post[]
+  members   CommunityMember[]
+}
+
+model CommunityMember {
+  id       Int      @id @default(autoincrement())
+  role     String   @default("MEMBER")
+  joinedAt DateTime @default(now())
+
+  userId      Int
+  communityId Int
+  user        User      @relation(fields: [userId], references: [id])
+  community   Community @relation(fields: [communityId], references: [id])
+
+  @@unique([userId, communityId])
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String?                  // ✅ optional (image/link posts may have no text)
+  imageUrl  String?
+  type      String   @default("text") // ✅ "text" | "image" | "link"
+  createdAt DateTime @default(now())
+
+  communityId Int
+  authorId    Int
+  community   Community @relation(fields: [communityId], references: [id])
+  author      User      @relation(fields: [authorId], references: [id])
+  comments    Comment[]
+  votes       Vote[]
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  content   String
+  createdAt DateTime @default(now())
+
+  postId   Int
+  authorId Int
+  post     Post @relation(fields: [postId], references: [id])
+  author   User @relation(fields: [authorId], references: [id])
+}
+
+model Vote {
+  id   Int    @id @default(autoincrement())
+  type String // "UPVOTE" | "DOWNVOTE"
+
+  userId Int
+  postId Int
+  user   User @relation(fields: [userId], references: [id])
+  post   Post @relation(fields: [postId], references: [id])
+
+  @@unique([userId, postId])
+}
+
+
+
