@@ -1,16 +1,50 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { api } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 
 export default function PostCard({ post }) {
   const [vote, setVote] = useState(0);
+  const [score, setScore] = useState(post.upvotes ?? post._count?.votes ?? 0);
   const navigate = useNavigate();
-  const score = (post.votes ?? post._count?.votes ?? 0) + vote;
+  const { isLoggedIn } = useAuth();
 
   const fmt = (n) => (n >= 1000 ? (n / 1000).toFixed(1) + "k" : n);
 
-  const handleVote = (e, dir) => {
+  const handleVote = async (e, dir) => {
     e.stopPropagation();
-    setVote((v) => (v === dir ? 0 : dir));
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+
+    const prevVote = vote;
+    const prevScore = score;
+
+    // Optimistic update
+    if (vote === dir) {
+      // toggle off
+      setVote(0);
+      setScore((s) => (dir === 1 ? s - 1 : s + 1));
+    } else if (vote === 0) {
+      // new vote
+      setVote(dir);
+      setScore((s) => (dir === 1 ? s + 1 : s - 1));
+    } else {
+      // switch vote
+      setVote(dir);
+      setScore((s) => (dir === 1 ? s + 2 : s - 2));
+    }
+
+    try {
+      const data = await api.vote(post.id, dir === 1 ? "UPVOTE" : "DOWNVOTE");
+      // Update with real score from server
+      setScore(data.upvotes - data.downvotes);
+    } catch (err) {
+      // Revert on error
+      setVote(prevVote);
+      setScore(prevScore);
+    }
   };
 
   return (
@@ -19,9 +53,7 @@ export default function PostCard({ post }) {
       onClick={() => navigate(`/r/${post.community?.slug}/comments/${post.id}`)}
     >
       {/* Vote column */}
-      {/* Vote column */}
       <div className="bg-gray-50 w-16 flex flex-col items-center py-3 gap-1 rounded-l-sm shrink-0 border-r border-gray-200">
-        {/* Upvote */}
         <button
           onClick={(e) => handleVote(e, 1)}
           className={`flex flex-col items-center justify-center w-12 py-1.5 rounded-lg hover:bg-orange-100 transition-colors group ${
@@ -42,7 +74,6 @@ export default function PostCard({ post }) {
           </span>
         </button>
 
-        {/* Score */}
         <span
           className={`text-sm font-bold py-0.5 ${
             vote === 1
@@ -55,7 +86,6 @@ export default function PostCard({ post }) {
           {fmt(score)}
         </span>
 
-        {/* Downvote */}
         <button
           onClick={(e) => handleVote(e, -1)}
           className={`flex flex-col items-center justify-center w-12 py-1.5 rounded-lg hover:bg-blue-100 transition-colors group ${
@@ -79,7 +109,6 @@ export default function PostCard({ post }) {
 
       {/* Post content */}
       <div className="p-2 flex-1 min-w-0">
-        {/* Meta */}
         <div className="flex items-center gap-1 text-xs text-gray-500 mb-1 flex-wrap">
           <span
             className="font-semibold text-gray-900 hover:underline"
@@ -96,33 +125,25 @@ export default function PostCard({ post }) {
           <span>{new Date(post.createdAt).toLocaleDateString()}</span>
         </div>
 
-        {/* Title */}
         <h3 className="text-base font-medium text-gray-900 leading-snug mb-1">
           {post.title}
-          {post.type === "link" && (
-            <span className="ml-2 text-xs text-[#0079D3] font-normal">
-              🔗 link
-            </span>
-          )}
         </h3>
 
-        {/* Image */}
         {post.imageUrl && post.type === "image" && (
           <img
             src={post.imageUrl}
-            alt={post.title}
+            alt=""
             className="w-full max-h-80 object-cover rounded mb-2"
             onError={(e) => (e.target.style.display = "none")}
           />
         )}
-        {/* Text preview */}
-        {post.content && post.type !== "link" && (
+
+        {post.content && post.type !== "image" && (
           <p className="text-sm text-gray-600 line-clamp-3 mb-2">
             {post.content}
           </p>
         )}
 
-        {/* Actions */}
         <div className="flex items-center gap-1 flex-wrap">
           <button
             className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded px-2 py-1.5 transition-colors"
@@ -144,7 +165,7 @@ export default function PostCard({ post }) {
                 d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
               />
             </svg>
-            {fmt(post._count?.comments ?? post.comments ?? 0)} Comments
+            {fmt(post._count?.comments ?? 0)} Comments
           </button>
           <button
             className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded px-2 py-1.5 transition-colors"
