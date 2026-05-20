@@ -1,6 +1,5 @@
 import prisma from "../utils/prismaClient.js";
 
-// POST /api/posts/:id/vote
 export const votePost = async (req, res) => {
   const { id } = req.params;
   const { type } = req.body; // 'UPVOTE' or 'DOWNVOTE'
@@ -20,37 +19,32 @@ export const votePost = async (req, res) => {
       where: { userId_postId: { userId, postId: parseInt(id) } },
     });
 
-    let action;
-
     if (existing) {
       if (existing.type === type) {
-        // Same vote → remove it (toggle off)
+        // Same vote → remove it
         await prisma.vote.delete({ where: { id: existing.id } });
-        action = "removed";
       } else {
         // Different vote → switch it
         await prisma.vote.update({
           where: { id: existing.id },
           data: { type },
         });
-        action = "switched";
       }
     } else {
-      // No existing vote → create
+      // No vote → create
       await prisma.vote.create({
         data: { type, userId, postId: parseInt(id) },
       });
-      action = "added";
     }
 
-    // Return updated score
+    // Return fresh counts
     const votes = await prisma.vote.findMany({
       where: { postId: parseInt(id) },
     });
     const upvotes = votes.filter((v) => v.type === "UPVOTE").length;
     const downvotes = votes.filter((v) => v.type === "DOWNVOTE").length;
 
-    res.json({ action, score: upvotes - downvotes, upvotes, downvotes });
+    res.json({ upvotes, downvotes, score: upvotes - downvotes });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

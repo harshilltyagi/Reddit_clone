@@ -21,27 +21,21 @@ export default function PostCard({ post }) {
     const prevVote = vote;
     const prevScore = score;
 
-    // Optimistic update
     if (vote === dir) {
-      // toggle off
       setVote(0);
       setScore((s) => (dir === 1 ? s - 1 : s + 1));
     } else if (vote === 0) {
-      // new vote
       setVote(dir);
       setScore((s) => (dir === 1 ? s + 1 : s - 1));
     } else {
-      // switch vote
       setVote(dir);
       setScore((s) => (dir === 1 ? s + 2 : s - 2));
     }
 
     try {
       const data = await api.vote(post.id, dir === 1 ? "UPVOTE" : "DOWNVOTE");
-      // Update with real score from server
-      setScore(data.upvotes - data.downvotes);
+      setScore(data.score);
     } catch (err) {
-      // Revert on error
       setVote(prevVote);
       setScore(prevScore);
     }
@@ -54,6 +48,7 @@ export default function PostCard({ post }) {
     >
       {/* Vote column */}
       <div className="bg-gray-50 w-16 flex flex-col items-center py-3 gap-1 rounded-l-sm shrink-0 border-r border-gray-200">
+        {/* Upvote */}
         <button
           onClick={(e) => handleVote(e, 1)}
           className={`flex flex-col items-center justify-center w-12 py-1.5 rounded-lg hover:bg-orange-100 transition-colors group ${
@@ -74,6 +69,7 @@ export default function PostCard({ post }) {
           </span>
         </button>
 
+        {/* Score */}
         <span
           className={`text-sm font-bold py-0.5 ${
             vote === 1
@@ -86,6 +82,7 @@ export default function PostCard({ post }) {
           {fmt(score)}
         </span>
 
+        {/* Downvote */}
         <button
           onClick={(e) => handleVote(e, -1)}
           className={`flex flex-col items-center justify-center w-12 py-1.5 rounded-lg hover:bg-blue-100 transition-colors group ${
@@ -109,6 +106,7 @@ export default function PostCard({ post }) {
 
       {/* Post content */}
       <div className="p-2 flex-1 min-w-0">
+        {/* Meta */}
         <div className="flex items-center gap-1 text-xs text-gray-500 mb-1 flex-wrap">
           <span
             className="font-semibold text-gray-900 hover:underline"
@@ -125,10 +123,12 @@ export default function PostCard({ post }) {
           <span>{new Date(post.createdAt).toLocaleDateString()}</span>
         </div>
 
+        {/* Title */}
         <h3 className="text-base font-medium text-gray-900 leading-snug mb-1">
           {post.title}
         </h3>
 
+        {/* Image */}
         {post.imageUrl && post.type === "image" && (
           <img
             src={post.imageUrl}
@@ -138,12 +138,14 @@ export default function PostCard({ post }) {
           />
         )}
 
+        {/* Text preview */}
         {post.content && post.type !== "image" && (
           <p className="text-sm text-gray-600 line-clamp-3 mb-2">
             {post.content}
           </p>
         )}
 
+        {/* Actions */}
         <div className="flex items-center gap-1 flex-wrap">
           <button
             className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded px-2 py-1.5 transition-colors"
