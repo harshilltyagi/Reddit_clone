@@ -19,20 +19,32 @@ export default function PostCard({ post }) {
       onClick={() => navigate(`/r/${post.community?.slug}/comments/${post.id}`)}
     >
       {/* Vote column */}
-      <div className="bg-gray-50 w-12 flex flex-col items-center py-3 gap-1 rounded-l-sm shrink-0 border-r border-gray-200">
+      {/* Vote column */}
+      <div className="bg-gray-50 w-16 flex flex-col items-center py-3 gap-1 rounded-l-sm shrink-0 border-r border-gray-200">
+        {/* Upvote */}
         <button
           onClick={(e) => handleVote(e, 1)}
-          className={`flex flex-col items-center justify-center w-8 h-8 rounded hover:bg-orange-100 transition-colors ${
-            vote === 1 ? "text-[#FF4500]" : "text-gray-400"
+          className={`flex flex-col items-center justify-center w-12 py-1.5 rounded-lg hover:bg-orange-100 transition-colors group ${
+            vote === 1 ? "bg-orange-100 text-[#FF4500]" : "text-gray-400"
           }`}
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 4l8 8H4z" />
           </svg>
+          <span
+            className={`text-[10px] font-bold mt-0.5 ${
+              vote === 1
+                ? "text-[#FF4500]"
+                : "text-gray-400 group-hover:text-[#FF4500]"
+            }`}
+          >
+            Up
+          </span>
         </button>
 
+        {/* Score */}
         <span
-          className={`text-xs font-bold ${
+          className={`text-sm font-bold py-0.5 ${
             vote === 1
               ? "text-[#FF4500]"
               : vote === -1
@@ -43,15 +55,25 @@ export default function PostCard({ post }) {
           {fmt(score)}
         </span>
 
+        {/* Downvote */}
         <button
           onClick={(e) => handleVote(e, -1)}
-          className={`flex flex-col items-center justify-center w-8 h-8 rounded hover:bg-blue-100 transition-colors ${
-            vote === -1 ? "text-[#7193FF]" : "text-gray-400"
+          className={`flex flex-col items-center justify-center w-12 py-1.5 rounded-lg hover:bg-blue-100 transition-colors group ${
+            vote === -1 ? "bg-blue-100 text-[#7193FF]" : "text-gray-400"
           }`}
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 20l-8-8h16z" />
           </svg>
+          <span
+            className={`text-[10px] font-bold mt-0.5 ${
+              vote === -1
+                ? "text-[#7193FF]"
+                : "text-gray-400 group-hover:text-[#7193FF]"
+            }`}
+          >
+            Down
+          </span>
         </button>
       </div>
 
