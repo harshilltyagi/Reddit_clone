@@ -16,10 +16,14 @@ export default function ProfilePage() {
       navigate("/login");
       return;
     }
+
     api
-      .getPosts({ limit: 50 })
+      .getPosts({ limit: 100 })
       .then((d) => {
-        const myPosts = (d.posts ?? []).filter((p) => p.author?.id === user.id);
+        const allPosts = d.posts ?? [];
+        const myPosts = allPosts.filter(
+          (p) => p.author?.id === user.id || p.authorId === user.id,
+        );
         setPosts(myPosts);
       })
       .catch(console.error)
@@ -30,6 +34,12 @@ export default function ProfilePage() {
     logout();
     navigate("/login");
   };
+
+  // ✅ Upvotes received on YOUR posts only
+  const totalVotesReceived = posts.reduce(
+    (acc, p) => acc + (p.upvotes ?? 0),
+    0,
+  );
 
   if (!user) return null;
 
@@ -57,7 +67,7 @@ export default function ProfilePage() {
           ))}
         </div>
 
-        {/* Posts */}
+        {/* Posts tab */}
         {activeTab === "posts" && (
           <>
             {loading ? (
@@ -93,7 +103,7 @@ export default function ProfilePage() {
           </>
         )}
 
-        {/* Comments placeholder */}
+        {/* Comments tab */}
         {activeTab === "comments" && (
           <div className="bg-white border border-gray-300 rounded-sm p-12 text-center">
             <div className="text-5xl mb-3">💬</div>
@@ -107,31 +117,43 @@ export default function ProfilePage() {
 
       {/* Sidebar */}
       <aside className="w-72 shrink-0 hidden lg:block">
-        {/* Profile Card */}
         <div className="bg-white border border-gray-300 rounded-sm overflow-hidden mb-4">
+          {/* Banner */}
           <div className="bg-[#FF4500] h-12" />
+
           <div className="px-4 pb-4">
+            {/* Avatar */}
             <div className="w-16 h-16 rounded-full bg-[#FF4500] border-4 border-white flex items-center justify-center text-white font-bold text-2xl -mt-8 mb-3">
               {user.username?.[0]?.toUpperCase()}
             </div>
+
+            {/* User info */}
             <h2 className="font-bold text-lg text-gray-900">
               u/{user.username}
             </h2>
             <p className="text-xs text-gray-500 mb-4">{user.email}</p>
 
+            {/* Stats */}
             <div className="flex gap-4 mb-4 pb-4 border-b border-gray-200">
               <div>
                 <div className="font-bold text-sm">{posts.length}</div>
-                <div className="text-xs text-gray-500">Posts</div>
+                <div className="text-xs text-gray-500">My Posts</div>
+              </div>
+              <div>
+                <div className="font-bold text-sm text-[#FF4500]">
+                  {totalVotesReceived}
+                </div>
+                <div className="text-xs text-gray-500">Upvotes Received</div>
               </div>
               <div>
                 <div className="font-bold text-sm">
-                  {posts.reduce((acc, p) => acc + (p._count?.votes ?? 0), 0)}
+                  {posts.reduce((acc, p) => acc + (p._count?.comments ?? 0), 0)}
                 </div>
-                <div className="text-xs text-gray-500">Total Votes</div>
+                <div className="text-xs text-gray-500">Comments</div>
               </div>
             </div>
 
+            {/* Actions */}
             <div className="space-y-2">
               <button
                 onClick={() => navigate("/")}
@@ -151,6 +173,35 @@ export default function ProfilePage() {
               >
                 Log Out
               </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Joined since */}
+        <div className="bg-white border border-gray-300 rounded-sm p-3">
+          <h3 className="font-bold text-sm mb-2">Account Info</h3>
+          <div className="text-xs text-gray-500 space-y-1">
+            <div className="flex justify-between">
+              <span>Username</span>
+              <span className="font-semibold text-gray-700">
+                u/{user.username}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Email</span>
+              <span className="font-semibold text-gray-700">{user.email}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Total Posts</span>
+              <span className="font-semibold text-gray-700">
+                {posts.length}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span>Upvotes Received</span>
+              <span className="font-semibold text-[#FF4500]">
+                {totalVotesReceived}
+              </span>
             </div>
           </div>
         </div>

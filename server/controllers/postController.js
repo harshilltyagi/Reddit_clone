@@ -4,9 +4,8 @@ export const createPost = async (req, res) => {
   const { title, content, imageUrl, communitySlug, type } = req.body;
   const authorId = req.user.id;
 
-  if (!title || !communitySlug) {
+  if (!title || !communitySlug)
     return res.status(400).json({ error: "Title and community are required" });
-  }
 
   try {
     const community = await prisma.community.findUnique({
@@ -18,9 +17,9 @@ export const createPost = async (req, res) => {
     const post = await prisma.post.create({
       data: {
         title,
-        content,
+        content: content || null,
         imageUrl: imageUrl || null,
-        type: type || "text", // 'text' | 'image' | 'link'
+        type: type || "text",
         authorId,
         communityId: community.id,
       },
@@ -28,21 +27,26 @@ export const createPost = async (req, res) => {
         author: { select: { id: true, username: true } },
         community: { select: { id: true, name: true, slug: true } },
         _count: { select: { votes: true, comments: true } },
+        votes: true,
       },
     });
 
-    res.status(201).json(post);
+    const upvotes = post.votes.filter((v) => v.type === "UPVOTE").length;
+    const downvotes = post.votes.filter((v) => v.type === "DOWNVOTE").length;
+
+    res
+      .status(201)
+      .json({ ...post, upvotes, downvotes, score: upvotes - downvotes });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
 export const listPosts = async (req, res) => {
-  const { sort = "latest", communitySlug, page = 1, limit = 10 } = req.query;
+  const { page = 1, limit = 20, sort = "latest", communitySlug } = req.query;
   const skip = (parseInt(page) - 1) * parseInt(limit);
 
   const where = communitySlug ? { community: { slug: communitySlug } } : {};
-
   const orderBy =
     sort === "popular" ? { votes: { _count: "desc" } } : { createdAt: "desc" };
 
@@ -57,13 +61,26 @@ export const listPosts = async (req, res) => {
           author: { select: { id: true, username: true } },
           community: { select: { id: true, name: true, slug: true } },
           _count: { select: { votes: true, comments: true } },
+          votes: true, // ✅ include full votes array
         },
       }),
       prisma.post.count({ where }),
     ]);
 
+    // ✅ Calculate upvotes/downvotes/score for each post
+    const postsWithScore = posts.map((post) => {
+      const upvotes = post.votes.filter((v) => v.type === "UPVOTE").length;
+      const downvotes = post.votes.filter((v) => v.type === "DOWNVOTE").length;
+      return {
+        ...post,
+        upvotes,
+        downvotes,
+        score: upvotes - downvotes,
+      };
+    });
+
     res.json({
-      posts,
+      posts: postsWithScore,
       total,
       page: parseInt(page),
       totalPages: Math.ceil(total / limit),
@@ -92,11 +109,11 @@ export const getPost = async (req, res) => {
 
     if (!post) return res.status(404).json({ error: "Post not found" });
 
-    // Calculate vote score
+    // ✅ Calculate score
     const upvotes = post.votes.filter((v) => v.type === "UPVOTE").length;
     const downvotes = post.votes.filter((v) => v.type === "DOWNVOTE").length;
 
-    res.json({ ...post, score: upvotes - downvotes, upvotes, downvotes });
+    res.json({ ...post, upvotes, downvotes, score: upvotes - downvotes });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
